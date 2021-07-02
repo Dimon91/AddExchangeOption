@@ -1,13 +1,23 @@
+from enum import Enum, auto
+
+class TypeOfCompare(Enum):
+    equal = auto()
+    not_equal = auto()
+    
+    def to_string(self) -> str:
+        if(self == self.equal):
+            result = "Равно"
+        elif (self == self.not_equal):
+            result = "НеРавно"
+        else:
+            result = ""
+        
+        return result
 
 class Rule:
 
-    def __init__(self):
-        self.name = ""
-        self.mode = ""
-        self.filters_RMQ = []
-        self.exchangeRMQIsAvailable = False
-    
     def __init__(self, rule_node):
+        self.rule_node = rule_node
         self.name = rule_node.find('Наименование').text
         self.mode = rule_node.find("РеквизитРежимаВыгрузки").text
         self.filters_RMQ = []
@@ -37,3 +47,8 @@ class Rule:
             comparison_type = filter[3].text
             pair = {value:comparison_type}
             self.filters_RMQ.append(pair)
+    
+    def add_filter(self, value, comparison_type: TypeOfCompare):
+        pass
+
+
