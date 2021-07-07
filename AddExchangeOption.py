@@ -1,53 +1,44 @@
 #!/usr/bin/python3
 # coding: utf-8
 
-import xml.etree.ElementTree as ET
-from Rule import Rule
+from lxml import etree as ET
+from typing import List
+from Rule import Rule, TypeOfCompare
 
 
-def main():
-    tree = ET.parse('rules.xml')
-    listGroup = tree.findall('ПравилаРегистрацииОбъектов/Группа')
-    for group in listGroup:
-        process_group(group)
+def main():    
+    text = ''
+    with(open('rules.xml', 'r', encoding='utf-8')) as f:
+        text = f.read()        
+    if(text == ''):
+        raise Exception('Не удалось открыть файл')
+    
+    tree = ET.fromstring(text)
+    rulesroot = tree.find('ПравилаРегистрацииОбъектов')
+    rules: List[Rule] = []
+    process_group(rulesroot, rules)
+    for rule in rules:
+        rule.addfilternode(("НовыйФильтр", TypeOfCompare.not_equal))
+    
+    with(open('result.xml', 'w', encoding='utf-8')) as f:
+        outtext = ET.tostring(tree, encoding = 'unicode')
+        f.write(outtext)
 
 
-def process_group(group):
+def process_group(group, rules: List[Rule]):
     listGroup = group.findall('Группа')
     for subgroup in listGroup:
-        process_group(subgroup)
-
+        process_group(subgroup, rules)
     listRules = group.findall("Правило")
     for rule in listRules:
-        process_rule(rule)
+        rule_obj = Rule(rule)
+        if(rule_obj.exchangeRMQIsAvailable):
+            rules.append(rule_obj)
 
 
-def process_rule(rule):
-
-    rule_obj = Rule(rule)
-    if(rule_obj.exchangeRMQIsAvailable):
-        print(rule_obj.to_string(';'))
-
-def filters_RMQ(rule):
-
-    filters = rule.find('ОтборПоСвойствамПланаОбмена')
-
-    listFilters = []
-
-    if(filters != None):
-        filters_in_group(filters, listFilters)
-
-    return listFilters
-
-
-def filters_in_group(group, listFilters):
-    groupsFilters = group.findall('Группа')
-    for subgroup in groupsFilters:
-        filters_in_group(subgroup, listFilters)
-
-    filters_RMQ = group.findall(
-        "ЭлементОтбора[СвойствоПланаОбмена = 'ВариантВыгрузкиRMQ']")
-    listFilters.extend(filters_RMQ)
+def addOption(name: str, rules: List[Rule]):
+    for rule in rules:
+        rule.addfilternode((name, TypeOfCompare.not_equal))
 
 
 if __name__ == "__main__":
